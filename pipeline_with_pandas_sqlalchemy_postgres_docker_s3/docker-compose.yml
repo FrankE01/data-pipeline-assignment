@@ -1,0 +1,58 @@
+services:
+  pipeline:
+    build:
+      context: ./
+      dockerfile: pipeline.Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+    container_name: pipeline
+    networks:
+      - assignment4
+
+  db:
+    build:
+      context: ./
+      dockerfile: db.Dockerfile
+    container_name: db
+    image: postgres:13
+    command: -p 5432
+    environment:
+      PGUSER: ${POSTGRES_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      PGDATA: /data/postgresql
+    volumes:
+      - postgres:/data/postgresql
+    ports:
+      - "5433:5432"
+    networks:
+      - assignment4
+    restart: "unless-stopped"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  pgadmin:
+    container_name: pgadmin4_container
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-francis@trestleacademyghana.org}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-secret}
+      PGADMIN_LISTEN_PORT: 1111
+    volumes:
+      - pgadmin:/var/lib/pgadmin
+    ports:
+      - "1111:1111"
+    networks:
+      - assignment4
+    restart: "unless-stopped"
+
+volumes:
+  postgres:
+  pgadmin:
+
+networks:
+  assignment4:
+    driver: bridge
